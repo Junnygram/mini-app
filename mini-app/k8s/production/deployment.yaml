@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mini-app
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mini-app
+  template:
+    metadata:
+      labels:
+        app: mini-app
+    spec:
+      containers:
+      - name: mini-app
+        image: placeholder/mini-app:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ENV
+          value: "production"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mini-app-service
+  namespace: production
+spec:
+  selector:
+    app: mini-app
+  ports:
+  - port: 80
+    targetPort: 8080
+  type: LoadBalancer

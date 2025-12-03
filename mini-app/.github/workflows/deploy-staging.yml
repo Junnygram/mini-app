@@ -1,0 +1,34 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ staging ]
+  workflow_run:
+    workflows: ["Build and Push"]
+    types: [completed]
+    branches: [ staging ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'push' }}
+    environment: staging
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up kubectl
+      uses: azure/setup-kubectl@v3
+      
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+        
+    - name: Deploy to Staging
+      run: |
+        export KUBECONFIG=kubeconfig
+        kubectl set image deployment/mini-app mini-app=${{ secrets.DOCKER_USERNAME }}/mini-app:staging-${{ github.sha }} -n staging
+        kubectl apply -f k8s/staging/ -n staging
+        kubectl rollout status deployment/mini-app -n staging
